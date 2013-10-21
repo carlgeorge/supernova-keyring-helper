@@ -68,7 +68,7 @@ def handle_args(s):
     possible = s.get_nova_creds().sections()
 
     # program info
-    the_name = 'supernova-setenv'
+    the_name = 'supernova-keyring-helper'
     the_description = ('Store all required information for a Rackspace '
                        'Cloud environment in supernova-keyring.')
     the_version = '%(prog)s 0.2'
