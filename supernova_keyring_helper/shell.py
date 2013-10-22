@@ -1,91 +1,169 @@
 import sys
-import getpass
 import argparse
-from supernova import supernova
-from supernova import executable
+import supernova.supernova
+import supernova.executable
 
 
 def write(msg):
+    ''' My print function. '''
     sys.stdout.write(msg)
     sys.stdout.flush()
 
 
 def input_value():
+    ''' Get single value from user input. '''
     try:
         value = sys.stdin.readline().rstrip('\n')
     except KeyboardInterrupt:
         value = ''
     if len(value) < 1:
-        msg = '\n[{}] No data was altered in your keyring.\n'.format(
-            executable.rwrap('Canceled'))
+        msg = '[{}]\n'.format(supernova.executable.rwrap('Canceled'))
         write(msg)
-        sys.exit()
+        return None
     return value
 
 
 def input_all_values():
-    ''' Prompts for values. '''
-    values = {}
-
+    ''' Prompts for values from user input. '''
+    payload = {}
+    count = 0
     write('DDI : '.rjust(15))
     ddi = input_value()
-    values['OS_TENANT_NAME'] = ddi
-    values['OS_PROJECT_ID'] = ddi
-
+    if ddi:
+        payload['OS_TENANT_NAME'] = ddi
+        payload['OS_PROJECT_ID'] = ddi
+        count += 1
     write('USERNAME : '.rjust(15))
     username = input_value()
-    values['OS_USERNAME'] = username
-
-    write('REGION : '.rjust(15))
-    region = input_value().upper()
-    values['OS_REGION_NAME'] = region
-
+    if username:
+        payload['OS_USERNAME'] = username
+        count += 1
     write('APIKEY : '.rjust(15))
     apikey = input_value()
-    values['OS_PASSWORD'] = apikey
+    if apikey:
+        payload['OS_PASSWORD'] = apikey
+        count += 1
+    write('REGION : '.rjust(15))
+    region = input_value()
+    if region:
+        payload['OS_REGION_NAME'] = region
+        count += 1
+    return payload, count
 
-    return values
 
-
-def store_values(s, args, values):
-    for each in values.keys():
+def store_values(s, args, payload):
+    ''' Store the values in the keyring. '''
+    for each in payload.keys():
         parameter = '{}:{}'.format(args.env, each)
-        value = values.get(each)
-        if args.verbose:
-            write('{}={}\n'.format(each, value))
+        value = payload.get(each)
         try:
             s.password_set(parameter, value)
         except:
-            if args.verbose:
-                write('failed to store {}\n'.format(parameter))
             return False
     return True
 
 
 def set_values(s, args):
+    ''' Primary function for the --set flag. '''
     msg = '[{}] Storing data for the {} environment.\n'.format(
-        executable.gwrap('Keyring operation'),
+        supernova.executable.gwrap('Keyring operation'),
         args.env)
     write(msg)
-
-    values = input_all_values()
-    result = store_values(s, args, values)
-
+    payload, count = input_all_values()
+    result = store_values(s, args, payload)
     if result:
-        msg = '[{}] Stored all values in keyring.\n'.format(
-            executable.gwrap('Success'))
-        write(msg)
+        if count > 1:
+            msg = '[{}] Stored {} values in your keyring.\n'.format(
+                supernova.executable.gwrap('Success'), count)
+        elif count == 1:
+            msg = '[{}] Stored 1 value in your keyring.\n'.format(
+                supernova.executable.gwrap('Success'))
+        else:
+            msg = '[{}] No data was altered in your keyring.\n'.format(
+                supernova.executable.gwrap('Success'))
     else:
         msg = '[{}] Could not store values in keyring.\n'.format(
-            executable.rwrap('Failure'))
-        write(msg)
+            supernova.executable.rwrap('Failure'))
+    write(msg)
+
+
+def print_values(payload):
+    ''' Print the values that were retrieved from the keyring. '''
+    # populate friendly variables from the payload
+    ddi = payload.get('OS_TENANT_NAME')
+    username = payload.get('OS_USERNAME')
+    apikey = payload.get('OS_PASSWORD')
+    region = payload.get('OS_REGION_NAME')
+
+    # print each friendly variable, if it exists
+    count = 0
+    if ddi:
+        write('DDI : '.rjust(15))
+        write('{}\n'.format(ddi))
+        count += 1
+    if username:
+        write('USERNAME : '.rjust(15))
+        write('{}\n'.format(username))
+        count += 1
+    if apikey:
+        write('APIKEY : '.rjust(15))
+        write('{}\n'.format(apikey))
+        count += 1
+    if region:
+        write('REGION : '.rjust(15))
+        write('{}\n'.format(region))
+        count += 1
+
+    # print the total count of friendly variables
+    if count > 1:
+        msg = '[{}] Retrieved {} values from your keyring.\n'.format(
+            supernova.executable.gwrap('Success'), count)
+    elif count == 1:
+        msg = '[{}] Retrieved 1 value from your keyring.\n'.format(
+            supernova.executable.gwrap('Success'))
+    else:
+        msg = '[{}] No data was retrieved from your keyring.\n'.format(
+            supernova.executable.gwrap('Success'))
+    write(msg)
+
+
+def retrieve_all_values(s, args):
+    ''' Retrieve the values in the keyring. '''
+    payload = {}
+    os_list = ['OS_TENANT_NAME',
+               'OS_PROJECT_ID',
+               'OS_USERNAME',
+               'OS_PASSWORD',
+               'OS_REGION_NAME']
+    for each in os_list:
+        parameter = '{}:{}'.format(args.env, each)
+        try:
+            value = s.password_get(parameter)
+        except:
+            value = ''
+        if value:
+            payload[each] = value
+    return payload
 
 
 def get_values(s, args):
+    ''' Primary function for the --get flag. '''
     msg = '[{}] Retrieving data for the {} environment.\n'.format(
-        executable.gwrap('Keyring operation'),
+        supernova.executable.gwrap('Keyring operation'),
         args.env)
     write(msg)
+
+    # build the payload from the keyring
+    payload = retrieve_all_values(s, args)
+
+    # warn the user if the DDI is stored incorrectly
+    if payload.get('OS_TENANT_NAME') != payload.get('OS_PROJECT_ID'):
+        msg = ('[{}] OS_TENANT_NAME does not match OS_PROJECT_ID\n'.format(
+            supernova.executable.rwrap('Warning')))
+        write(msg)
+
+    # print what we want
+    print_values(payload)
 
 
 def handle_args(s):
@@ -97,7 +175,7 @@ def handle_args(s):
     the_name = 'supernova-keyring-helper'
     the_description = ('Store all required information for a Rackspace '
                        'Cloud environment in supernova-keyring.')
-    the_version = '%(prog)s 0.2'
+    the_version = '%(prog)s 0.3'
 
     # start parsing the args
     parser = argparse.ArgumentParser(prog=the_name,
@@ -108,36 +186,27 @@ def handle_args(s):
                        help='retrieves all credentials for env from keychain')
     group.add_argument('-s', '--set', action='store_true',
                        dest='set_values',
-                       help='stores all credentials for env in keychain')    
+                       help='stores all credentials for env in keychain')
     parser.add_argument('env',
-                        help='environment to work against')
-    parser.add_argument('-l',
-                        '--list',
-                        action=executable._ListAction,
-                        help=argparse.SUPPRESS)
-    #                    help='list all configured environments')
+                        help=('environment to work against. '
+                              'valid options: {}'.format(possible)))
     parser.add_argument('-v',
                         '--version',
                         action='version',
                         version=the_version)
-    parser.add_argument('-V',
-                        '--verbose',
-                        action='store_true',
-                        help=argparse.SUPPRESS)
-    #                    help='enable verbose output')
     args = parser.parse_args()
 
     # check for config file
-    executable.check_supernova_conf(s)
+    supernova.executable.check_supernova_conf(s)
 
     # check if env is valid
-    executable.setup_supernova_env(s, args.env)
+    supernova.executable.setup_supernova_env(s, args.env)
 
     return args
 
 
 def main():
-    s = supernova.SuperNova()
+    s = supernova.supernova.SuperNova()
     args = handle_args(s)
     if args.set_values:
         set_values(s, args)
