@@ -181,10 +181,14 @@ def handle_args(s):
     parser = argparse.ArgumentParser(prog=the_name,
                                      description=the_description)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-g', '--get', action='store_true',
+    group.add_argument('-g',
+                       '--get',
+                       action='store_true',
                        dest='get_values',
                        help='retrieves all credentials for env from keychain')
-    group.add_argument('-s', '--set', action='store_true',
+    group.add_argument('-s',
+                       '--set',
+                       action='store_true',
                        dest='set_values',
                        help='stores all credentials for env in keychain')
     parser.add_argument('env',
