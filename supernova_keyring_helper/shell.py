@@ -168,6 +168,9 @@ def get_values(s, args):
 
 def handle_args(s):
     ''' Handle arguements and validate input. '''
+    # check for config file
+    supernova.executable.check_supernova_conf(s)
+
     # get a list of possible environments
     possible = s.get_nova_creds().sections()
 
@@ -199,9 +202,6 @@ def handle_args(s):
                         action='version',
                         version=the_version)
     args = parser.parse_args()
-
-    # check for config file
-    supernova.executable.check_supernova_conf(s)
 
     # check if env is valid
     supernova.executable.setup_supernova_env(s, args.env)
