@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='supernova-keyring-helper',
-    version='0.3',
+    version='0.4',
     description=('Store all required information for a Rackspace '
                  'Cloud environment in supernova-keyring.'),
     author='Carl George',

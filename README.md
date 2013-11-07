@@ -19,5 +19,5 @@ Installation
 ------------
 
 ```
-pip install https://github.com/cgtx/supernova-keyring-helper/archive/v0.3.tar.gz
+pip install https://github.com/cgtx/supernova-keyring-helper/archive/v0.4.tar.gz
 ```

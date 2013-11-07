@@ -178,7 +178,7 @@ def handle_args(s):
     the_name = 'supernova-keyring-helper'
     the_description = ('Store all required information for a Rackspace '
                        'Cloud environment in supernova-keyring.')
-    the_version = '%(prog)s 0.3'
+    the_version = '%(prog)s 0.4'
 
     # start parsing the args
     parser = argparse.ArgumentParser(prog=the_name,
